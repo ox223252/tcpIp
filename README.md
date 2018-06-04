@@ -142,3 +142,6 @@ tyu :
 $ gcc client.c tcpIp.c -o b && ./b
 Ok
 ```
+
+## Note:
+Be care your OS can release the port for 30 to 240 seconds after the effective *close()*. Here in the example I place a timeout of 60 seconds (+2) because my system is set to release port 60 s after the *close()*.
