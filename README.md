@@ -121,6 +121,7 @@ int main ( void )
 	write ( client, "Ok", 3 );
 
 	close ( server );
+	sleep ( 1 );
 	close ( client );
 
 	return ( 0 );
