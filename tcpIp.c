@@ -35,7 +35,7 @@ int serverInit ( const uint16_t port )
 	server = socket ( AF_INET, SOCK_STREAM, 0 );
 	if ( server < 0 )
 	{
-		return ( -1 );
+		return ( -__LINE__ );
 	}
 
 	servAddr.sin_family = AF_INET;
@@ -44,7 +44,7 @@ int serverInit ( const uint16_t port )
 
 	if ( bind ( server, ( struct sockaddr * ) &servAddr, sizeof ( servAddr ) ) )
 	{
-		return ( -1 );
+		return ( -__LINE__ );
 	}
 	return ( server );
 }
@@ -56,7 +56,7 @@ int serverListen ( const int server )
 
 	if ( listen ( server, SOMAXCONN ) )
 	{
-		return ( -1 );
+		return ( -__LINE__ );
 	}
 
 	return ( accept ( server, ( struct sockaddr * ) &from, ( socklen_t * ) &addrlen ) );
@@ -70,7 +70,7 @@ int recvTimed ( const int from, char * const buffer, const uint64_t size,
 	timeout.tv_usec = ( usec != NULL ) ? (*usec) % 1000000 : 0;
 
 	fd_set readfd;
-	uint8_t result;
+	int32_t result;
 
 	FD_ZERO ( &readfd );
 	FD_SET ( from, &readfd );
@@ -111,14 +111,14 @@ int clientInit ( const char * addr, const uint16_t port )
 
 	if ( sock == -1 )
 	{
-		return ( -1 );
+		return ( -__LINE__ );
 	}
 
 	hostinfo = ( struct hostent * ) gethostbyname ( addr );
 
 	if ( hostinfo == NULL )
 	{
-		return ( -1 );
+		return ( -__LINE__ );
 	}
 
 	sin.sin_addr = *( struct in_addr * ) hostinfo->h_addr ;
@@ -126,7 +126,7 @@ int clientInit ( const char * addr, const uint16_t port )
 	sin.sin_family = AF_INET;
 	if ( connect ( sock, ( struct sockaddr * ) &sin, sizeof ( struct sockaddr ) ) == -1 )
 	{
-		return ( -1 );
+		return ( -__LINE__ );
 	}
 	return sock;
 }

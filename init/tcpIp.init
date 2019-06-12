@@ -1,0 +1,30 @@
+@ after INIT_VAR
+	char serverAddr[ 32 ] = "172.0.0.1";
+	uint16_t serverPort = 6666;
+	int serverFd = 0;
+	int clientFd = 0;
+@ after END_CONFIG
+	if ( clientFd = clientInit ( server_addr, port ), clientFd > 0 )
+	{ // client create
+		printf ( "connected to server\\n" );
+	}
+	else if ( serverFd = serverInit ( port ), serverFd <= 0 )
+	{ // failure case
+	}
+	else if ( clientFd = serverListen ( serverFd ), clientFd > 0 )
+	{ // client created
+		printf ( "client connected\\n" );
+	}
+	else
+	{ // failure case
+	}
+
+@ after END_PROGRAM
+	if ( clientFd > 0 )
+	{
+		close ( clientFd );
+	}
+	if ( serverFd > 0 )
+	{
+		close ( serverFd );
+	}
