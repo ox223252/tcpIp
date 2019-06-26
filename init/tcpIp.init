@@ -4,15 +4,15 @@
 	int serverFd = 0;
 	int clientFd = 0;
 @ after END_CONFIG
-	if ( clientFd = clientInit ( server_addr, port ), clientFd > 0 )
+	if ( clientFd = clientInit ( serverAddr, serverPort ), clientFd > 0 )
 	{ // client create
 		printf ( "connected to server\\n" );
 	}
-	else if ( serverFd = serverInit ( port ), serverFd <= 0 )
+	else if ( serverFd = serverInit ( serverPort ), serverFd <= 0 )
 	{ // failure case
 	}
 	else if ( clientFd = serverListen ( serverFd ), clientFd > 0 )
-	{ // client created
+	{ // client connected
 		printf ( "client connected\\n" );
 	}
 	else
