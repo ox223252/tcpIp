@@ -1,22 +1,21 @@
 @ after INIT_VAR
-	char serverAddr[ 32 ] = "172.0.0.1";
+	char serverAddr[ 32 ] = "127.0.0.1";
 	uint16_t serverPort = 6666;
+	int nbClient = 5;
 	int serverFd = 0;
 	int clientFd = 0;
-@ after END_CONFIG
+
+@ after END_LOG END_CONFIG END_FREEONEXIT
 	if ( clientFd = clientInit ( serverAddr, serverPort ), clientFd > 0 )
 	{ // client create
 		printf ( "connected to server\\n" );
 	}
-	else if ( serverFd = serverInit ( serverPort ), serverFd <= 0 )
-	{ // failure case
-	}
-	else if ( clientFd = serverListen ( serverFd ), clientFd > 0 )
-	{ // client connected
-		printf ( "client connected\\n" );
-	}
-	else
-	{ // failure case
+	else if ( serverFd = serverInit ( serverPort, nbClient ), serverFd > 0 )
+	{ // server ok
+		if ( clientFd = serverAccept ( serverFd ), clientFd > 0 )
+		{ // client connected
+			printf ( "client connected\\n" );
+		}
 	}
 
 @ after END_PROGRAM

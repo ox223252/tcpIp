@@ -26,7 +26,10 @@
 #include <stdlib.h>
 #include <fcntl.h>
 
-int serverInit ( const uint16_t port )
+#include <time.h>
+#include <stdio.h>
+
+int serverInit ( const uint16_t port, const uint16_t nbMaxClient )
 {
 	int server;
 	struct sockaddr_in servAddr;
@@ -38,26 +41,30 @@ int serverInit ( const uint16_t port )
 		return ( -__LINE__ );
 	}
 
+	memset ( &servAddr, 0, sizeof ( struct sockaddr_in ) );
 	servAddr.sin_family = AF_INET;
 	servAddr.sin_port = htons ( port );
 	servAddr.sin_addr.s_addr = htonl ( INADDR_ANY );
 
 	if ( bind ( server, ( struct sockaddr * ) &servAddr, sizeof ( servAddr ) ) )
 	{
+		close ( server );
 		return ( -__LINE__ );
 	}
+
+	if ( listen ( server, nbMaxClient ) )
+	{
+		close ( server );
+		return ( -__LINE__ );
+	}
+
 	return ( server );
 }
 
-int serverListen ( const int server )
+int serverAccept ( const int server )
 {
 	struct sockaddr_in from = { 0 };
 	int addrlen = sizeof ( from );
-
-	if ( listen ( server, SOMAXCONN ) )
-	{
-		return ( -__LINE__ );
-	}
 
 	return ( accept ( server, ( struct sockaddr * ) &from, ( socklen_t * ) &addrlen ) );
 }
@@ -129,6 +136,162 @@ int clientInit ( const char * addr, const uint16_t port )
 		return ( -__LINE__ );
 	}
 	return sock;
+}
+
+// exemple of client/serveur
+// first launch it start as server
+// next ones start as client, and connect to the server
+int __attribute__((weak)) main ( void )
+{
+	char serverAddr[] = "127.0.0.1\0";
+	uint16_t serverPort = 6666;
+	
+	int socket = 0;
+	
+	if ( socket = clientInit ( serverAddr, serverPort ), socket > 0 )
+	{ // client only part
+		srand( time ( NULL ) );
+		char name[4];
+		for ( int i = 0; i <  3; i++ )
+		{
+			name[ i ] = rand ( ) % 26 + 'a';
+		}
+		name[ 3 ] = 0;
+
+		printf ( "%s\n", name );
+
+		if ( send ( socket, name, 10, 0 ) < 0 )
+		{
+			printf ( "error on send name\n" );
+			return ( __LINE__ );
+		}
+
+		while ( 1 )
+		{
+			if ( send ( socket, "msg", 4, 0 ) < 0 )
+			{ // server endded
+				close ( socket );
+				return ( 0 );
+			}
+			sleep ( 1 );
+		}
+	}
+	else if ( socket = serverInit ( serverPort, 5 ), socket > 0 )
+	{ // server only part
+		printf( "Press q to quit\n" );
+
+		int clientMax = 5;
+		int clientFd[ 32 ] = { 0 };
+		char clientName[ 32 ][ 64 ] = { 0 };
+
+		fd_set rdfs;
+		while ( 1 )
+		{
+			int max = socket;
+			FD_ZERO ( &rdfs );
+			FD_SET ( STDIN_FILENO, &rdfs ); // add stdin fd
+			FD_SET ( socket, &rdfs ); // add server fd
+
+			for ( int i = 0; i < clientMax; i++ ) 
+			{
+				if ( clientFd[ i ] > 0 )
+				{ // add socket of each client
+					FD_SET ( clientFd[ i ], &rdfs );
+				}
+
+				if ( clientFd[ i ] > max )
+				{ // find the higger socket addr
+					max = clientFd[ i ];
+				}
+			}
+
+			if ( select ( max + 1, &rdfs, NULL, NULL, NULL) == -1 )
+			{
+				perror ( "select()" );
+				return ( __LINE__ );
+			}
+
+			if ( FD_ISSET ( STDIN_FILENO, &rdfs ) )
+			{ // something from standard input : i.e keyboard
+				char c;
+				while ( c = getchar(), c != '\n' )
+				{
+					if ( ( c == 'q' ) ||
+						( c == 'Q' ) )
+					{
+						for ( int i = 0; i < clientMax; i++ )
+						{ // clean the client socket buffer
+							if ( clientFd[ i ] != 0 )
+							{
+								close ( clientFd[ i ] );
+							}
+						}
+						close ( socket );
+						return ( 0 );
+					}
+				}
+				printf( "Press q to quit\n" );
+			}
+			else if ( FD_ISSET ( socket, &rdfs ) )
+			{ // new client request
+				printf ( "new client :\n" );
+				for ( int i = 0; i < clientMax; i++ )
+				{
+					if ( clientFd[ i ] == 0 )
+					{
+						clientFd[ i ] = serverAccept ( socket );
+						if ( clientFd[ i ] > 0 )
+						{ // new client regitered
+							printf ( "client connected : " );
+						}
+						else
+						{
+							perror ( "new client" );
+							clientFd[ i ] = 0;
+							continue;
+						}
+						
+						uint64_t t = 1000000;
+						int n = 0;
+						if ( n = recvTimed ( clientFd[ i ], clientName[ i ], 64, &t ), n <= 0 )
+						{ // after connecting the client sends its name
+							close ( clientFd[ i ] );
+
+							clientName[ i ][ n ] = 0;
+							clientFd[ i ] = 0;
+							
+							printf ( "unamed\n" );
+							continue;
+						}
+						printf ( "%s\n", clientName[ i ] );
+						break;
+					}
+				}
+			}
+			else for ( int i = 0; i < clientMax; i++ )
+			{ // a client is talking
+				if ( FD_ISSET ( clientFd[ i ], &rdfs ) )
+				{
+					char buffer[ 64 ] = { 0 };
+					uint64_t t = 1000000;
+					if ( recvTimed ( clientFd[ i ], buffer, 64, &t ) <= 0 )
+					{ // client disconnected
+						close ( clientFd[ i ] );
+
+						printf ( "%s disconnected\n", clientName[ i ] );
+						clientFd[ i ] = 0; // remove client
+						clientName[ i ][ 0 ] = 0; // remove client name
+					}
+					else
+					{
+						printf ( "%s send %s\n", clientName[ i ], buffer );
+					}
+				}
+			}
+		}
+	}
+
+	return ( 0 );
 }
 
 #if 0

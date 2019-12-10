@@ -24,7 +24,7 @@
 /// \author ox223252
 /// \date 2017-07
 /// \copyright GPLv2
-/// \version 0.1
+/// \version 1.0
 /// \warning NONE
 /// \bug NONE
 ////////////////////////////////////////////////////////////////////////////////
@@ -32,14 +32,14 @@
 #include <stdint.h>
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \fn int serverInit ( const uint16_t port );
-/// \param [in] const uint16_t port : to specify the port where server will
-///     listen
+/// \fn int serverInit ( const uint16_t port, const uint16_t nbMaxClient );
+/// \param [in] port : to specify the port where server will listen
+/// \param [in] nbMaxClient : nb max of client accepted on the server
 /// \brief create a TCP server
 /// \return if less than zero function failed else return server file descriptor
 ///     see errno for more details
 ////////////////////////////////////////////////////////////////////////////////
-int serverInit ( const uint16_t port );
+int serverInit ( const uint16_t port, const uint16_t nbMaxClient );
 
 ////////////////////////////////////////////////////////////////////////////////
 /// \fn int serverListen ( const int server );
@@ -48,7 +48,7 @@ int serverInit ( const uint16_t port );
 /// \return if less than zero function failed else return client file descriptor
 ///     see errno for more details
 ////////////////////////////////////////////////////////////////////////////////
-int serverListen ( const int server );
+int serverAccept ( const int server );
 
 ////////////////////////////////////////////////////////////////////////////////
 /// \fn int recvTimed ( const int from, char * const buffer,
