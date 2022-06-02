@@ -15,10 +15,23 @@
 ///     this program. If not, see <http://www.gnu.org/licenses/>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <netdb.h>
+
+#ifdef _WIN32
+//For Windows
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
+#include <ws2def.h>
+#pragma comment(lib, "Ws2_32.lib")
+#include <windows.h>
+#include <io.h>
+#else
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <netdb.h>
+#endif
+
 #include <sys/types.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -103,7 +116,28 @@ int recvTimed ( const int from, char * const buffer, const uint64_t size,
 	}
 
 	memset ( buffer, '\0', size );
-	result = recv ( from, buffer, size, MSG_DONTWAIT );
+	#ifdef __linux__
+	{
+		result = recv ( from, buffer, size, MSG_DONTWAIT );
+	}
+	#elif defined (_WIN32) || defined(_WIN64)
+	{
+		// https://docs.microsoft.com/en-us/windows/win32/api/winsock/nf-winsock-ioctlsocket
+		//-------------------------
+		// Set the socket I/O mode: In this case FIONBIO
+		// enables or disables the blocking mode for the
+		// socket based on the numerical value of iMode.
+		// If iMode = 0, blocking is enabled;
+		// If iMode != 0, non-blocking mode is enabled.
+		u_long iMode = 1;
+		ioctlsocket ( from, FIONBIO, &iMode );
+		result = recv ( from, buffer, size, 0 );
+	}
+	#else
+	{
+		#error
+	}
+	#endif
 
 	return ( result );
 }
